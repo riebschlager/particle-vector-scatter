@@ -1,4 +1,6 @@
 *.class
+.DS_Store
+ParticleVectorScatter/data/*
 
 # Package Files #
 *.jar

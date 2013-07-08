@@ -15,8 +15,8 @@ int currentSrc = 0;
 void setup() {
   size((int) OUTPUT_WIDTH/4, (int) OUTPUT_HEIGHT/4);
   physics = new VerletPhysics2D();
-  physics.setDrag(0.1f);
-  loadVectors("drips");
+  physics.setDrag(0.5f);
+  loadVectors("retro");
   loadBitmaps("default");
   for (int i=0; i < shapes.size(); i++) {
     VerletParticle2D p = new VerletParticle2D(width/2, height/2, map(i, 0, shapes.size() - 1, 0.25, 2));
@@ -28,6 +28,8 @@ void setup() {
 void draw() {
   background(255);
   canvas.beginDraw();
+  canvas.noFill();
+  canvas.noStroke();
   physics.update();
   for (VerletParticle2D p : physics.particles) {
     if (!mousePressed) break;
@@ -38,20 +40,17 @@ void draw() {
     PShape shape = shapes.get(physics.particles.indexOf(p));
     shape.resetMatrix();
     shape.disableStyle();
-    shape.rotate(p.heading());
+    shape.rotate(p.getVelocity().heading());
     float scaleFactor = p.getVelocity().magnitude();
     scaleFactor = map(scaleFactor, 0, 20, -6, 6);
     shape.scale(scaleFactor);
     canvas.fill(red(c), green(c), blue(c), random(255));
-    //canvas.noStroke();
-    canvas.stroke(0, random(100, 255));
+    //canvas.stroke(0, random(100, 255));
     canvas.strokeWeight(0.1);
     canvas.shape(shape, (int) map(p.x, 0, width, 0, OUTPUT_WIDTH), (int) map(p.y, 0, height, 0, OUTPUT_HEIGHT));
   }
   canvas.endDraw();
   image(canvas, 0, 0, width, height);
-  scale(-1, 1);
-  image(canvas, -width, 0, width, height);
 }
 
 void loadBitmaps(String folderName) {
@@ -63,23 +62,29 @@ void loadBitmaps(String folderName) {
   }
 }
 
-void loadVectors(String folderName) {
-  int i = 0;
-  File folder = new File(this.sketchPath+"/data/vector/" + folderName);
-  File[] listOfFiles = folder.listFiles(new IgnoreSystemFileFilter());
-  for (File file : listOfFiles) {
-    if (file.isFile()) {
-      PShape shape = loadShape(file.getAbsolutePath());
-      for (PShape layer : shape.getChildren()) {
-        if (layer!=null) {
-          shapes.add(layer);
-          i++;
-          if (i>10) return;
+// Create an SVG with several shapes, each on its own layer.
+// Make sure they're all crammed into the top-left of the artboard.
+
+void loadVectors(String ... folderName) {
+  for (int i = 0; i < folderName.length; i++) {
+    int limit = 0;
+    File folder = new File(this.sketchPath + "/data/vector/" + folderName[i]);
+    File[] listOfFiles = folder.listFiles();
+    for (File file : listOfFiles) {
+      if (file.isFile()) {
+        PShape shape = loadShape(file.getAbsolutePath());
+        for (PShape layer : shape.getChildren()) {
+          if (layer!=null && limit < 40) {
+            layer.disableStyle();
+            shapes.add(layer);
+            limit++;
+          }
         }
       }
     }
   }
 }
+
 
 void keyPressed() {
   if (key == ' ') {
@@ -109,7 +114,7 @@ void keyPressed() {
 
 void mousePressed() {
   mousePos = new Vec2D(mouseX, mouseY);
-  mouseAttractor = new AttractionBehavior(mousePos, width, 2.0f);
+  mouseAttractor = new AttractionBehavior(mousePos, width, 5.0f);
   physics.addBehavior(mouseAttractor);
 }
 
